@@ -126,3 +126,7 @@ docker/*local*
 test-report.html
 superset/static/stats/statistics.html
 .aider*
+
+.history
+/memory
+/.github/prompts
