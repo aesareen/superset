@@ -126,3 +126,10 @@ docker/*local*
 test-report.html
 superset/static/stats/statistics.html
 .aider*
+/.claude
+/.github
+/.claude
+/.cursor
+/.history
+/memory
+CLAUDE.md

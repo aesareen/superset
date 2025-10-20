@@ -1468,8 +1468,24 @@ class SqlaTable(
 
     def get_sqla_table(self) -> TableClause:
         tbl = table(self.table_name)
-        if self.schema:
+        
+        # For databases that support catalogs, combine catalog + schema using schema prefixing
+        # This is a workaround for SQLAlchemy 1.4's limitation where TableClause doesn't have
+        # a catalog attribute. BigQuery and similar databases support three-part identifiers
+        # (catalog.schema.table), so we combine them into the schema attribute.
+        if (hasattr(self.db_engine_spec, 'supports_catalog') and 
+            self.db_engine_spec.supports_catalog and 
+            self.catalog):
+            # BigQuery format: project.dataset.table
+            if self.schema:
+                tbl.schema = f"{self.catalog}.{self.schema}"
+            else:
+                # Catalog only (no schema) - use catalog as schema
+                tbl.schema = self.catalog
+        elif self.schema:
+            # No catalog support or no catalog set
             tbl.schema = self.schema
+
         return tbl
 
     def get_from_clause(
