@@ -116,6 +116,13 @@ superset/translations/**/messages.json
 superset/translations/**/messages.mo
 
 docker/requirements-local.txt
+/.claude
+/.github
+/.claude
+/.cursor
+/.history
+/memory
+CLAUDE.md
 
 cache/
 docker/*local*
