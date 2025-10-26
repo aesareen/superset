@@ -44,42 +44,86 @@ export function sanitizeHtml(htmlString: string) {
   return xssFilter.process(htmlString);
 }
 
-export function hasHtmlTagPattern(str: string): boolean {
-  const htmlTagPattern =
-    /<(html|head|body|div|span|a|p|h[1-6]|title|meta|link|script|style)/i;
-
-  return htmlTagPattern.test(str);
-}
-
-export function isProbablyHTML(text: string) {
-  const cleanedStr = text.trim().toLowerCase();
-
-  if (
-    cleanedStr.startsWith('<!doctype html>') &&
-    hasHtmlTagPattern(cleanedStr)
-  ) {
-    return true;
+/**
+ * Simplified HTML detection - extremely conservative approach.
+ * 
+ * This function now ONLY detects complete HTML documents (starting with
+ * <!DOCTYPE html> or <html>). All other strings with angle brackets will
+ * be treated as plain text and displayed as-is.
+ * 
+ * Rationale:
+ * - Query results containing strings like "<custom_tag>value</custom_tag>"
+ *   or comparison operators "a < b" should be visible as plain text
+ * - Only intentional full HTML documents should be rendered as HTML
+ * - This prevents data hiding where overly aggressive HTML sanitization
+ *   strips unrecognized tags, making query results appear empty
+ * - Users can still opt-in to HTML rendering via SqllabIsRenderHtmlEnabled,
+ *   but the default behavior is to show data as text to prevent data loss
+ * 
+ * @param text - The string to check
+ * @returns true only if the text is a complete HTML document, false otherwise
+ */
+export function isProbablyHTML(text: string): boolean {
+  if (!text || typeof text !== 'string') {
+    return false;
   }
 
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(cleanedStr, 'text/html');
-  return Array.from(doc.body.childNodes).some(({ nodeType }) => nodeType === 1);
+  const cleaned = text.trim().toLowerCase();
+  
+  // Only full HTML documents are treated as HTML
+  // Everything else (including HTML fragments like <div>test</div>) displays as text
+  return cleaned.startsWith('<!doctype html>') || cleaned.startsWith('<html');
 }
 
 export function sanitizeHtmlIfNeeded(htmlString: string) {
   return isProbablyHTML(htmlString) ? sanitizeHtml(htmlString) : htmlString;
 }
 
-export function safeHtmlSpan(possiblyHtmlString: string) {
+/**
+ * Simplified HTML rendering - returns plain strings by default.
+ * 
+ * With the simplified isProbablyHTML detection, almost all query result strings
+ * (including those with angle brackets like "<custom_tag>value</custom_tag>")
+ * will return as plain text. React will automatically escape the angle brackets,
+ * making them visible to users.
+ * 
+ * Only complete HTML documents (starting with <!DOCTYPE html> or <html>) will
+ * be sanitized and rendered as HTML.
+ * 
+ * @param possiblyHtmlString - The string that might contain HTML
+ * @returns Either the original string (for React to escape) or a JSX element with sanitized HTML
+ */
+export function safeHtmlSpan(possiblyHtmlString: string): string | JSX.Element {
+  // Input validation - handle null/undefined
+  if (!possiblyHtmlString || typeof possiblyHtmlString !== 'string') {
+    return possiblyHtmlString;
+  }
+
   const isHtml = isProbablyHTML(possiblyHtmlString);
+  
   if (isHtml) {
+    // This is a full HTML document - sanitize and render
+    const sanitized = sanitizeHtml(possiblyHtmlString);
+    
+    // Fallback: If sanitization stripped everything, display as text instead
+    if (!sanitized || sanitized.trim().length === 0) {
+      console.warn(
+        'HTML sanitization removed all content, displaying as text:',
+        possiblyHtmlString.substring(0, 100)
+      );
+      return possiblyHtmlString;
+    }
+    
     return (
       <span
         className="safe-html-wrapper"
-        dangerouslySetInnerHTML={{ __html: sanitizeHtml(possiblyHtmlString) }}
+        dangerouslySetInnerHTML={{ __html: sanitized }}
       />
     );
   }
+  
+  // Not HTML - return as-is for React to automatically escape
+  // This includes: custom tags, HTML fragments, comparison operators, JSX syntax, etc.
   return possiblyHtmlString;
 }
 

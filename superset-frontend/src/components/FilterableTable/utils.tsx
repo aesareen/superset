@@ -30,6 +30,19 @@ type Params = CellParams & {
   getCellContent?: (args: CellParams) => string;
 };
 
+/**
+ * Renders a cell in the SQL Lab results table.
+ * 
+ * With the simplified HTML detection approach:
+ * - Strings with angle brackets (like "<custom_tag>value</custom_tag>") display as plain text
+ * - Only complete HTML documents (starting with <!DOCTYPE html> or <html>) render as HTML
+ * - This prevents data hiding where query results appear empty due to overly aggressive sanitization
+ * 
+ * @param cellData - The data to render in the cell
+ * @param getCellContent - Optional function to transform cell content
+ * @param columnKey - The column identifier
+ * @param allowHTML - Whether to allow HTML rendering (default: true)
+ */
 export const renderResultCell = ({
   cellData,
   getCellContent,
@@ -51,6 +64,9 @@ export const renderResultCell = ({
       />
     );
   }
+  // When allowHTML is true, safeHtmlSpan will:
+  // - Return strings as-is for React to escape (most cases)
+  // - Only render complete HTML documents as HTML
   if (allowHTML && typeof cellData === 'string') {
     return safeHtmlSpan(cellNode);
   }
