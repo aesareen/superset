@@ -299,3 +299,58 @@ test('does omit hiddenFormData when query_mode is not enabled', async () => {
     expect(formData[key]).toBeUndefined();
   });
 });
+
+describe('Browser Tab Title', () => {
+  beforeEach(() => {
+    // Reset document title before each test
+    document.title = 'Superset';
+  });
+
+  test('updates document title when chart has a name', async () => {
+    const customState = {
+      ...reduxState,
+      explore: {
+        ...reduxState.explore,
+        sliceName: 'Sales Dashboard',
+      },
+    };
+
+    await waitFor(() => renderWithRouter({ initialState: customState }));
+    
+    expect(document.title).toBe('Sales Dashboard - Superset');
+  });
+
+  test('keeps document title as "Superset" when chart has no name', async () => {
+    const customState = {
+      ...reduxState,
+      explore: {
+        ...reduxState.explore,
+        sliceName: null,
+      },
+    };
+
+    await waitFor(() => renderWithRouter({ initialState: customState }));
+    
+    expect(document.title).toBe('Superset');
+  });
+
+  test('resets document title to "Superset" when component unmounts', async () => {
+    const customState = {
+      ...reduxState,
+      explore: {
+        ...reduxState.explore,
+        sliceName: 'Test Chart',
+      },
+    };
+
+    const { unmount } = await waitFor(() =>
+      renderWithRouter({ initialState: customState }),
+    );
+
+    expect(document.title).toBe('Test Chart - Superset');
+
+    unmount();
+
+    expect(document.title).toBe('Superset');
+  });
+});
