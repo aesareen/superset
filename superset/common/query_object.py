@@ -107,6 +107,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
     time_shift: str | None
     time_range: str | None
     to_dttm: datetime | None
+    auxiliary_totals: dict[str, float] | None
 
     def __init__(  # pylint: disable=too-many-locals, too-many-arguments
         self,
@@ -161,6 +162,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         self.time_offsets = kwargs.get("time_offsets", [])
         self.inner_from_dttm = kwargs.get("inner_from_dttm")
         self.inner_to_dttm = kwargs.get("inner_to_dttm")
+        self.auxiliary_totals = None  # Will be populated during query execution
         self._rename_deprecated_fields(kwargs)
         self._move_deprecated_extra_fields(kwargs)
 
@@ -449,5 +451,8 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                         )
                     )
                 options = post_process.get("options", {})
+                # Pass auxiliary_totals to contribution operation if available
+                if operation == "contribution" and self.auxiliary_totals:
+                    options = {**options, "auxiliary_totals": self.auxiliary_totals}
                 df = getattr(pandas_postprocessing, operation)(df, **options)
             return df

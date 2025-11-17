@@ -54,6 +54,7 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
         result_format: ChartDataResultFormat | None = None,
         force: bool = False,
         custom_cache_timeout: int | None = None,
+        percentage_calculation_mode: str = "row_limit",
     ) -> QueryContext:
         datasource_model_instance = None
         if datasource:
@@ -80,6 +81,9 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
             "queries": queries,
             "result_type": result_type,
             "result_format": result_format,
+            # Include percentage_calculation_mode so QueryContext-level cache keys
+            # also vary when users switch between "row_limit" and "all_records".
+            "percentage_calculation_mode": percentage_calculation_mode,
         }
         return QueryContext(
             datasource=datasource_model_instance,
@@ -91,6 +95,7 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
             force=force,
             custom_cache_timeout=custom_cache_timeout,
             cache_values=cache_values,
+            percentage_calculation_mode=percentage_calculation_mode,
         )
 
     def _convert_to_model(self, datasource: DatasourceDict) -> BaseDatasource:

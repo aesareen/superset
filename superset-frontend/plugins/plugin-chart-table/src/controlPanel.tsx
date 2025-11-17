@@ -344,6 +344,7 @@ const config: ControlPanelConfig = {
             name: 'row_limit',
             override: {
               default: 1000,
+              renderTrigger: true,
               visibility: ({ controls }: ControlPanelsContainerProps) =>
                 !controls?.server_pagination?.value,
             },
@@ -429,6 +430,37 @@ const config: ControlPanelConfig = {
             },
           },
           null,
+        ],
+        [
+          {
+            name: 'percentage_calculation_mode',
+            config: {
+              type: 'SelectControl',
+              label: t('Percentage metric calculation'),
+              default: 'row_limit',
+              clearable: false,
+              rerender: ['row_limit'],
+              mapStateToProps: ({ form_data }) => ({
+                value: form_data.percentage_calculation_mode ?? 'row_limit',
+              }),
+              choices: [
+                ['row_limit', t('Row limit')],
+                ['all_records', t('All records')],
+              ],
+              description: t(
+                'Choose how percentage metrics are calculated. ' +
+                  '"Row limit" calculates percentages based on visible rows only (percentages sum to ~100%). ' +
+                  '"All records" calculates percentages based on the entire dataset (shows true contribution to total).',
+              ),
+              visibility: ({ controls }) => {
+                if (!controls) return false;
+                const isAggregate = getQueryMode(controls) === QueryMode.Aggregate;
+                const hasGroupBy = controls.groupby && !isEmpty(controls.groupby.value);
+                const hasPercentMetrics = controls.percent_metrics && !isEmpty(controls.percent_metrics.value);
+                return isAggregate && hasGroupBy && hasPercentMetrics;
+              },
+            },
+          },
         ],
         [
           {
