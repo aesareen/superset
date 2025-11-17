@@ -1381,6 +1381,17 @@ class ChartDataQueryContextSchema(Schema):
     result_type = fields.Enum(ChartDataResultType, by_value=True)
     result_format = fields.Enum(ChartDataResultFormat, by_value=True)
 
+    percentage_calculation_mode = fields.String(
+        required=False,
+        load_default="row_limit",
+        validate=validate.OneOf(["row_limit", "all_records"]),
+        metadata={
+            "description": "Determines how percentage metrics are calculated. "
+            "'row_limit' calculates percentages based on visible rows only. "
+            "'all_records' calculates percentages based on the entire dataset."
+        },
+    )
+
     form_data = fields.Raw(allow_none=True, required=False)
 
     # pylint: disable=unused-argument

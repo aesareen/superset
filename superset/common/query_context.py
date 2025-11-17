@@ -55,6 +55,7 @@ class QueryContext:
     result_format: ChartDataResultFormat
     force: bool
     custom_cache_timeout: int | None
+    percentage_calculation_mode: str
 
     cache_values: dict[str, Any]
 
@@ -74,6 +75,7 @@ class QueryContext:
         force: bool = False,
         custom_cache_timeout: int | None = None,
         cache_values: dict[str, Any],
+        percentage_calculation_mode: str = "row_limit",
     ) -> None:
         self.datasource = datasource
         self.slice_ = slice_
@@ -84,6 +86,7 @@ class QueryContext:
         self.force = force
         self.custom_cache_timeout = custom_cache_timeout
         self.cache_values = cache_values
+        self.percentage_calculation_mode = percentage_calculation_mode
         self._processor = QueryContextProcessor(self)
 
     def get_data(

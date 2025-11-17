@@ -37,6 +37,7 @@ def contribution(
     columns: list[str] | None = None,
     time_shifts: list[str] | None = None,
     rename_columns: list[str] | None = None,
+    auxiliary_totals: dict[str, float] | None = None,
 ) -> DataFrame:
     """
     Calculate cell contribution to row/column total for numeric columns.
@@ -52,6 +53,9 @@ def contribution(
     :param rename_columns: The new labels for the calculated contribution columns.
                            The original columns will not be removed.
     :param orientation: calculate by dividing cell with row/column total
+    :param auxiliary_totals: Optional dictionary mapping column names to their grand
+                            totals from the entire dataset (for percentage calculations
+                            in "all_records" mode)
     :return: DataFrame with contributions.
     """
     contribution_df = df.copy()
@@ -82,10 +86,29 @@ def contribution(
     numeric_df_view = numeric_df[actual_columns]
 
     if orientation == PostProcessingContributionOrientation.COLUMN:
-        numeric_df_view = numeric_df_view / numeric_df_view.values.sum(
-            axis=0, keepdims=True
-        )
-        contribution_df[rename_columns] = numeric_df_view
+        # Use auxiliary totals if provided, otherwise use visible row sums
+        if auxiliary_totals:
+            # Calculate contributions using auxiliary totals from entire dataset
+            for idx, col in enumerate(actual_columns):
+                if col in auxiliary_totals:
+                    total = auxiliary_totals[col]
+                    if total != 0:
+                        contribution_df[rename_columns[idx]] = numeric_df_view[col] / total
+                    else:
+                        contribution_df[rename_columns[idx]] = 0
+                else:
+                    # Fall back to visible row sum if auxiliary total not available
+                    col_sum = numeric_df_view[col].sum()
+                    if col_sum != 0:
+                        contribution_df[rename_columns[idx]] = numeric_df_view[col] / col_sum
+                    else:
+                        contribution_df[rename_columns[idx]] = 0
+        else:
+            # Default behavior: divide by sum of visible rows
+            numeric_df_view = numeric_df_view / numeric_df_view.values.sum(
+                axis=0, keepdims=True
+            )
+            contribution_df[rename_columns] = numeric_df_view
         return contribution_df
 
     result = get_column_groups(numeric_df_view, time_shifts, rename_columns)

@@ -237,12 +237,30 @@ class QueryContextProcessor:
         datasource = self._qc_datasource
         extra_cache_keys = datasource.get_extra_cache_keys(query_obj.to_dict())
 
+        # Ensure cache key changes when percentage calculation mode changes so that
+        # switching between "row_limit" and "all_records" invalidates cached results
+        # even if the rest of the query (including row_limit) stays the same.
+        percentage_mode = None
+        # Prefer the mode coming from form_data if available
+        if getattr(self._query_context, "form_data", None):
+            percentage_mode = self._query_context.form_data.get(
+                "percentage_calculation_mode",
+            )
+        # Fallback to the top-level value on the QueryContext if not present
+        if percentage_mode is None:
+            percentage_mode = getattr(
+                self._query_context,
+                "percentage_calculation_mode",
+                "row_limit",
+            )
+
         cache_key = (
             query_obj.cache_key(
                 datasource=datasource.uid,
                 extra_cache_keys=extra_cache_keys,
                 rls=security_manager.get_rls_cache_key(datasource),
                 changed_on=datasource.changed_on,
+                percentage_calculation_mode=percentage_mode,
                 **kwargs,
             )
             if query_obj
@@ -252,6 +270,9 @@ class QueryContextProcessor:
 
     def get_query_result(self, query_object: QueryObject) -> QueryResult:
         """Returns a pandas dataframe based on the query object"""
+        # pylint: disable=import-outside-toplevel
+        from superset.charts.data.auxiliary_queries import AuxiliaryQueryBuilder
+
         query_context = self._query_context
         # Here, we assume that all the queries will use the same datasource, which is
         # a valid assumption for current setting. In the long term, we may
@@ -264,6 +285,48 @@ class QueryContextProcessor:
         else:
             result = query_context.datasource.query(query_object.to_dict())
             query = result.query + ";\n\n"
+
+        # Execute auxiliary query for percentage calculations if needed
+        auxiliary_totals = None
+        # Get percentage_calculation_mode from form_data or top-level
+        percentage_mode = (
+            query_context.form_data.get("percentage_calculation_mode")
+            if query_context.form_data
+            else query_context.percentage_calculation_mode
+        ) or "row_limit"
+        
+        logger.info(
+            "Percentage calculation mode: %s (from form_data: %s, from context: %s)",
+            percentage_mode,
+            query_context.form_data.get("percentage_calculation_mode") if query_context.form_data else None,
+            query_context.percentage_calculation_mode
+        )
+        
+        if (
+            percentage_mode == "all_records"
+            and AuxiliaryQueryBuilder.should_build_auxiliary_query(
+                query_object, query_context.form_data
+            )
+        ):
+            logger.info("Executing auxiliary query for percentage calculations")
+            try:
+                totals_query_dict = AuxiliaryQueryBuilder.build_totals_query_object(
+                    query_object
+                )
+                auxiliary_totals = AuxiliaryQueryBuilder.execute_totals_query(
+                    query_context.datasource, totals_query_dict
+                )
+                if auxiliary_totals:
+                    logger.info(
+                        "Successfully fetched auxiliary totals for %s metrics",
+                        len(auxiliary_totals),
+                    )
+            except Exception as ex:  # pylint: disable=broad-except
+                logger.warning(
+                    "Auxiliary query failed, falling back to row_limit mode: %s",
+                    str(ex),
+                    exc_info=True,
+                )
 
         df = result.df
         # Transform the timestamp we received from database to pandas supported
@@ -281,6 +344,10 @@ class QueryContextProcessor:
 
                 query += ";\n\n".join(queries)
                 query += ";\n\n"
+
+            # Store auxiliary totals in query object for post-processing
+            if auxiliary_totals:
+                query_object.auxiliary_totals = auxiliary_totals
 
             # Re-raising QueryObjectValidationError
             try:
