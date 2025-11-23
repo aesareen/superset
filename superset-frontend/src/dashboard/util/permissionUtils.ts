@@ -70,6 +70,30 @@ export function userHasPermission(
   );
 }
 
+/**
+ * Derives whether the current user can open queries in SQL Lab based on RBAC.
+ *
+ * This is intentionally coupled to the existing "menu access on SQL Lab" permission
+ * (permission `menu_access` on view `SQL Lab`). If permission context is missing or
+ * incomplete, this helper fails safe by returning false so that SQL Lab entry points
+ * such as the "View in SQL Lab" button are hidden.
+ */
+export function getCanOpenInSqlLab(
+  user?: UserWithPermissionsAndRoles | UndefinedUser | null,
+): boolean {
+  if (!user) {
+    return false;
+  }
+
+  // `userHasPermission` already treats non-privileged / anonymous users as false and
+  // returns true for admins, which keeps behavior aligned with the main navigation.
+  return userHasPermission(
+    (user as UserWithPermissionsAndRoles) ?? ({} as UndefinedUser),
+    'SQL Lab',
+    'menu_access',
+  );
+}
+
 export const canUserSaveAsDashboard = (
   dashboard: Dashboard,
   user?: UserWithPermissionsAndRoles | UndefinedUser | null,
