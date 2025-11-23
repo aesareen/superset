@@ -34,6 +34,7 @@ import { applyColors, resetColors } from 'src/utils/colorScheme';
 import ReportModal from 'src/features/reports/ReportModal';
 import DeleteModal from 'src/components/DeleteModal';
 import { deleteActiveReport } from 'src/features/reports/ReportModal/actions';
+import { getCanOpenInSqlLab } from 'src/dashboard/util/permissionUtils';
 import { useExploreAdditionalActionsMenu } from '../useExploreAdditionalActionsMenu';
 import { useExploreMetadataBar } from './useExploreMetadataBar';
 
@@ -168,6 +169,8 @@ export const ExploreChartHeader = ({
     [redirectSQLLab, history],
   );
 
+  const canOpenInSqlLab = getCanOpenInSqlLab(user);
+
   const [menu, isDropdownVisible, setIsDropdownVisible] =
     useExploreAdditionalActionsMenu(
       latestQueryFormData,
@@ -179,6 +182,7 @@ export const ExploreChartHeader = ({
       metadata?.dashboards,
       showReportModal,
       setCurrentReportDeleting,
+      canOpenInSqlLab,
     );
 
   const metadataBar = useExploreMetadataBar(metadata, slice);

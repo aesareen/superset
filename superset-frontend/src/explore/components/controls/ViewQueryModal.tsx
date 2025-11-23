@@ -16,7 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FC, useEffect, useState } from 'react';
+import { FC, MouseEvent, useEffect, useState } from 'react';
+import { useDispatch } from 'react-redux';
+import { useHistory } from 'react-router-dom';
 
 import {
   styled,
@@ -25,11 +27,16 @@ import {
   getClientErrorObject,
 } from '@superset-ui/core';
 import Loading from 'src/components/Loading';
-import { getChartDataRequest } from 'src/components/Chart/chartAction';
+import {
+  getChartDataRequest,
+  redirectSQLLab,
+} from 'src/components/Chart/chartAction';
+import Button from 'src/components/Button';
 import ViewQuery from 'src/explore/components/controls/ViewQuery';
 
 interface Props {
   latestQueryFormData: object;
+  canOpenInSqlLab?: boolean;
 }
 
 type Result = {
@@ -43,10 +50,18 @@ const ViewQueryModalContainer = styled.div`
   flex-direction: column;
 `;
 
+const ButtonRow = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  margin-top: ${({ theme }) => theme.gridUnit * 2}px;
+`;
+
 const ViewQueryModal: FC<Props> = props => {
   const [result, setResult] = useState<Result[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const dispatch = useDispatch();
+  const history = useHistory();
 
   const loadChartData = (resultType: string) => {
     setIsLoading(true);
@@ -76,6 +91,15 @@ const ViewQueryModal: FC<Props> = props => {
     loadChartData('query');
   }, [JSON.stringify(props.latestQueryFormData)]);
 
+  const handleOpenInSqlLab = (event: MouseEvent<HTMLButtonElement>) => {
+    if (!props.canOpenInSqlLab) {
+      return;
+    }
+    const openInNewWindow = event.metaKey || event.ctrlKey;
+    const historyOrUndefined = openInNewWindow ? undefined : history;
+    dispatch(redirectSQLLab(props.latestQueryFormData, historyOrUndefined));
+  };
+
   if (isLoading) {
     return <Loading />;
   }
@@ -89,6 +113,11 @@ const ViewQueryModal: FC<Props> = props => {
         item.query ? (
           <ViewQuery sql={item.query} language={item.language || undefined} />
         ) : null,
+      )}
+      {props.canOpenInSqlLab && (
+        <ButtonRow>
+          <Button onClick={handleOpenInSqlLab}>{t('View in SQL Lab')}</Button>
+        </ButtonRow>
       )}
     </ViewQueryModalContainer>
   );

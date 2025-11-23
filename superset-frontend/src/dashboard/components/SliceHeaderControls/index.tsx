@@ -56,6 +56,7 @@ import { MenuKeys, RootState } from 'src/dashboard/types';
 import DrillDetailModal from 'src/components/Chart/DrillDetail/DrillDetailModal';
 import { usePermissions } from 'src/hooks/usePermissions';
 import Button from 'src/components/Button';
+import { getCanOpenInSqlLab } from 'src/dashboard/util/permissionUtils';
 import { useCrossFiltersScopingModal } from '../nativeFilters/FilterBar/CrossFilters/ScopingModal/useCrossFiltersScopingModal';
 import { ViewResultsModalTrigger } from './ViewResultsModalTrigger';
 
@@ -182,6 +183,8 @@ const SliceHeaderControls = (
       ?.behaviors?.includes(Behavior.InteractiveChart);
   const canExplore = props.supersetCanExplore;
   const { canDrillToDetail, canViewQuery, canViewTable } = usePermissions();
+  const user = useSelector<RootState, RootState['user']>(state => state.user);
+  const canOpenInSqlLab = getCanOpenInSqlLab(user);
   const refreshChart = () => {
     if (props.updatedDttm) {
       props.forceRefresh(props.slice.slice_id, props.dashboardId);
@@ -392,7 +395,12 @@ const SliceHeaderControls = (
               <div data-test="view-query-menu-item">{t('View query')}</div>
             }
             modalTitle={t('View query')}
-            modalBody={<ViewQueryModal latestQueryFormData={props.formData} />}
+            modalBody={
+              <ViewQueryModal
+                latestQueryFormData={props.formData}
+                canOpenInSqlLab={canOpenInSqlLab}
+              />
+            }
             draggable
             resizable
             responsive

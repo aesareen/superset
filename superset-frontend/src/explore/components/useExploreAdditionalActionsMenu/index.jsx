@@ -118,6 +118,7 @@ export const useExploreAdditionalActionsMenu = (
   dashboards,
   showReportModal,
   setCurrentReportDeleting,
+  canOpenInSqlLab,
   ...rest
 ) => {
   const theme = useTheme();
@@ -425,14 +426,17 @@ export const useExploreAdditionalActionsMenu = (
             }
             modalTitle={t('View query')}
             modalBody={
-              <ViewQueryModal latestQueryFormData={latestQueryFormData} />
+              <ViewQueryModal
+                latestQueryFormData={latestQueryFormData}
+                canOpenInSqlLab={canOpenInSqlLab}
+              />
             }
             draggable
             resizable
             responsive
           />
         </Menu.Item>
-        {datasource && (
+        {datasource && canOpenInSqlLab && (
           <Menu.Item key={MENU_KEYS.RUN_IN_SQL_LAB}>
             {t('Run in SQL Lab')}
           </Menu.Item>
@@ -449,6 +453,7 @@ export const useExploreAdditionalActionsMenu = (
       latestQueryFormData,
       showReportSubMenu,
       slice,
+      canOpenInSqlLab,
       theme.gridUnit,
     ],
   );
