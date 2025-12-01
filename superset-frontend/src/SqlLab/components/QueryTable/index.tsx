@@ -247,8 +247,9 @@ const QueryTable = ({
         const status = statusAttributes[state] || statusAttributes.error;
 
         if (q.endDttm) {
+          const startTime = q.startRunningDttm || q.startDttm;
           q.duration = (
-            <Label monospace>{fDuration(q.startDttm, q.endDttm)}</Label>
+            <Label monospace>{fDuration(startTime, q.endDttm)}</Label>
           );
         }
         q.user = (

@@ -182,6 +182,7 @@ class Query(
             "sql": self.sql,
             "sqlEditorId": self.sql_editor_id,
             "startDttm": self.start_time,
+            "startRunningDttm": self.start_running_time,
             "state": self.status.lower(),
             "tab": self.tab_name,
             "tempSchema": self.tmp_schema_name,
