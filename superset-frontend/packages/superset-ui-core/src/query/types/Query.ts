@@ -333,6 +333,7 @@ export type Query = {
   endDttm: number;
   duration: string;
   startDttm: number;
+  startRunningDttm?: number;
   time: Record<string, any>;
   user: Record<string, any>;
   userId: number;
