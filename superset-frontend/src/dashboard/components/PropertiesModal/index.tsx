@@ -129,8 +129,12 @@ const PropertiesModal = ({
       value: tag.id,
       label: tag.name,
     }));
+    // Sort tags alphabetically case-insensitive
+    selectTags.sort((a, b) =>
+      a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }),
+    );
     return selectTags;
-  }, [tags.length]);
+  }, [tags.length, tags]);
 
   const handleErrorResponse = async (response: Response) => {
     const { error, statusText, message } = await getClientErrorObject(response);
